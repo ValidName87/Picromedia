@@ -29,8 +29,7 @@ public class ConnectionHandler implements Runnable {
             } while (in.ready());
             HTTPRequest request = new HTTPRequest(input);
 
-            Router router = new Router(request);
-            HTTPResponse response = router.getResponse();
+            HTTPResponse response = Router.getResponse(request);
 
             System.out.println(request);
             System.out.println(response.toStringBodyless() + new String(response.getBody(), StandardCharsets.UTF_8));

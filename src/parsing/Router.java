@@ -6,20 +6,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Router {
-    private final HTTPRequest request;
-
-    public Router(HTTPRequest request) {
-        this.request = request;
+    public static HTTPResponse getResponse(HTTPRequest request) {
+        return request.getPath().startsWith("api/") ? getAPIResponse(request) : getPageResponse(request);
     }
 
-    public HTTPResponse getResponse() {
-        return request.getPath().startsWith("api/") ? getAPIResponse() : getPageResponse();
-    }
-
-    public HTTPResponse getPageResponse() {
-        HTTPResponse response;
+    private static HTTPResponse getPageResponse(HTTPRequest request) {
+        HTTPResponse response = new HTTPResponse();
         if (!request.getVersion().startsWith("HTTP/1.")) {
-            response = new HTTPResponse();
             response.setStatusCode("505 HTTP Version Not Supported");
             return response;
         }
@@ -33,18 +26,16 @@ public class Router {
             case "POST":
             case "PUT":
             case "DELETE":
-                response = new HTTPResponse();
                 response.setStatusCode("405 Method Not Allowed");
-                response.putHeader("Allow", "GET");
+                response.putHeader("Allow", "GET, HEAD");
                 return response;
             default:
-                response = new HTTPResponse();
                 response.set400();
                 return response;
         }
     }
 
-    public HTTPResponse getFileResponse(String path) {
+    private static HTTPResponse getFileResponse(String path) {
         HTTPResponse response = new HTTPResponse();
         String[] fileName = path.split("\\.");
         String contentType = fileName.length > 1 ? getContentType(fileName[fileName.length - 1]) : "text/html";
@@ -74,13 +65,7 @@ public class Router {
         return response;
     }
 
-    public HTTPResponse getAPIResponse() {
-        HTTPResponse response = new HTTPResponse();
-        response.setStatusCode("501 Not Implemented");
-        return response;
-    }
-
-    public String getContentType(String extension) {
+    private static String getContentType(String extension) {
         try (FileInputStream extStream = new FileInputStream("src/resources/MIME Types.csv")) {
             String extensions = new String(extStream.readAllBytes(), StandardCharsets.UTF_8);
             return Arrays.stream(extensions.split("\n"))
@@ -91,5 +76,11 @@ public class Router {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private static HTTPResponse getAPIResponse(HTTPRequest request) {
+        HTTPResponse response = new HTTPResponse();
+        response.setStatusCode("501 Not Implemented");
+        return response;
     }
 }
