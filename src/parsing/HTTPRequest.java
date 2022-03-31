@@ -14,7 +14,7 @@ public class HTTPRequest {
     public HTTPRequest(List<String> request) {
         try {
             String[] firstLine = request.get(0).split(" ");
-            verb = firstLine[0];
+            verb = firstLine[0].toUpperCase();
             path = firstLine[1];
             version = firstLine[2];
         } catch (IndexOutOfBoundsException | NullPointerException e) {
