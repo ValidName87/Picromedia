@@ -11,9 +11,9 @@ public interface Controller {
 
     public HTTPResponse DELETE(String path);
 
-    default HTTPResponse HEAD(String path) {
-        HTTPResponse response = GET(path);
-        response.setBody(new byte[] {});
-        return response;
-    }
+    public HTTPResponse HEAD(String path);
+
+    public void lock();
+
+    public void unlock();
 }

@@ -5,7 +5,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import controllers.ControllerManager;
+
 public class Router {
+    private static final ControllerManager controllerManager = new ControllerManager();
+
     public static HTTPResponse getResponse(HTTPRequest request) {
         return request.getPath().startsWith("api/") ? getAPIResponse(request) : getPageResponse(request);
     }
@@ -79,8 +83,21 @@ public class Router {
     }
 
     private static HTTPResponse getAPIResponse(HTTPRequest request) {
-        HTTPResponse response = new HTTPResponse();
-        response.setStatusCode("501 Not Implemented");
-        return response;
+        switch (request.getVerb()) {
+            case "GET":
+                return controllerManager.GET(request.getPath());
+            case "POST":
+                return controllerManager.POST(request.getPath(), request.getBody());
+            case "PUT":
+                return controllerManager.PUT(request.getPath(), request.getBody());
+            case "DELETE":
+                return controllerManager.DELETE(request.getPath());
+            case "HEAD":
+                return controllerManager.HEAD(request.getPath());
+            case default:
+                HTTPResponse response = new HTTPResponse();
+                response.setStatusCode("501 Not Implemented");
+                return response;
+        }
     }
 }
