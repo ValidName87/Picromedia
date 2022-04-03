@@ -94,7 +94,7 @@ public class Router {
                 return controllerManager.DELETE(request.getPath());
             case "HEAD":
                 return controllerManager.HEAD(request.getPath());
-            case default:
+            default:
                 HTTPResponse response = new HTTPResponse();
                 response.setStatusCode("501 Not Implemented");
                 return response;
