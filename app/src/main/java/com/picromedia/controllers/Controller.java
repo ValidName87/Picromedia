@@ -1,17 +1,19 @@
 package com.picromedia.controllers;
 
+import java.util.HashMap;
+
 import com.picromedia.parsing.HTTPResponse;
 
 public interface Controller {
-    public HTTPResponse GET(String path);
+    public HTTPResponse GET(HashMap<String, String> options);
 
-    public HTTPResponse POST(String path, byte[] content);
+    public HTTPResponse POST(HashMap<String, String> options, byte[] content);
 
-    public HTTPResponse PUT(String path, byte[] content);
+    public HTTPResponse PUT(HashMap<String, String> options, byte[] content);
 
-    public HTTPResponse DELETE(String path);
+    public HTTPResponse DELETE(HashMap<String, String> options);
 
-    public HTTPResponse HEAD(String path);
+    public HTTPResponse HEAD(HashMap<String, String> options);
 
     public void lock();
 

@@ -5,10 +5,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import com.picromedia.controllers.ControllerManager;
+import com.picromedia.controllers.Controller;
 
 public class Router {
-    private static final ControllerManager controllerManager = new ControllerManager();
 
     public static HTTPResponse getResponse(HTTPRequest request) {
         return request.getPath().startsWith("/api/") ? getAPIResponse(request) : getPageResponse(request);
@@ -83,21 +82,41 @@ public class Router {
     }
 
     private static HTTPResponse getAPIResponse(HTTPRequest request) {
-        switch (request.getVerb()) {
-            case "GET":
-                return controllerManager.GET(request.getPath());
-            case "POST":
-                return controllerManager.POST(request.getPath(), request.getBody());
-            case "PUT":
-                return controllerManager.PUT(request.getPath(), request.getBody());
-            case "DELETE":
-                return controllerManager.DELETE(request.getPath());
-            case "HEAD":
-                return controllerManager.HEAD(request.getPath());
-            default:
-                HTTPResponse response = new HTTPResponse();
-                response.setStatusCode("501 Not Implemented");
-                return response;
+        ApiURL url;
+        try {
+            url = new ApiURL(request.getPath());
+        } catch (IllegalArgumentException e) {
+            HTTPResponse response = new HTTPResponse();
+            response.set400();
+            return response;
+        }
+        Controller controller = url.getController();
+        if (controller == null) {
+            HTTPResponse response = new HTTPResponse();
+            response.set400();
+            return response;
+        }
+
+        controller.lock();
+        try {
+            switch (request.getVerb()) {
+                case "GET":
+                    return controller.GET(url.getOptions());
+                case "POST":
+                    return controller.POST(url.getOptions(), request.getBody());
+                case "PUT":
+                    return controller.PUT(url.getOptions(), request.getBody());
+                case "DELETE":
+                    return controller.DELETE(url.getOptions());
+                case "HEAD":
+                    return controller.HEAD(url.getOptions());
+                default:
+                    HTTPResponse response = new HTTPResponse();
+                    response.setStatusCode("501 Not Implemented");
+                    return response;
+            }
+        } finally {
+            controller.unlock();
         }
     }
 }

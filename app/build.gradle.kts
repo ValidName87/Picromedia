@@ -17,13 +17,10 @@ repositories {
 }
 
 dependencies {
+    implementation("org.reflections:reflections:0.10.2")
 }
 
 application {
     // Define the main class for the application.
     mainClass.set("com.picromedia.App")
-}
-
-tasks.withType<JavaCompile>(){
-    options.compilerArgs.addAll(listOf("--enable-preview"))
 }
