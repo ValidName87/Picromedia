@@ -42,7 +42,7 @@ public class Router {
         HTTPResponse response = new HTTPResponse();
         String[] fileName = path.split("\\.");
         String contentType = fileName.length > 1 ? getContentType(fileName[fileName.length - 1]) : "text/html";
-        path = path.contentEquals("/") ? "resources/website/index" : "resources/website" + path;
+        path = path.contentEquals("/") ? "src/main/website/index" : "src/main/website" + path;
         if (fileName.length == 1) {
             path = path + ".html";
         }
@@ -61,6 +61,7 @@ public class Router {
             response.putHeader("Content-Type", contentType);
             response.putHeader("Content-Length", String.valueOf(bytes.length));
         } catch (IOException e) {
+            e.printStackTrace();
             response.set404();
         } catch (SecurityException e) {
             response.set403();
@@ -69,7 +70,7 @@ public class Router {
     }
 
     private static String getContentType(String extension) {
-        try (FileInputStream extStream = new FileInputStream("resources/MIME Types.csv")) {
+        try (FileInputStream extStream = new FileInputStream("src/main/resources/MIME Types.csv")) {
             String extensions = new String(extStream.readAllBytes(), StandardCharsets.UTF_8);
             return Arrays.stream(extensions.split("\n"))
                     .filter((String s) -> s.startsWith(extension)).findFirst()

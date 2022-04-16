@@ -24,3 +24,11 @@ application {
     // Define the main class for the application.
     mainClass.set("com.picromedia.App")
 }
+
+sourceSets {
+    main {
+        resources {
+            setSrcDirs(listOf("src/main/website", "src/main/resources"))
+        }
+    }
+}
