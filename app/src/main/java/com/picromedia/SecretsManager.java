@@ -14,8 +14,7 @@ public class SecretsManager {
         try {
             String[] secretLines = Files.readString(Path.of(secretsPath), StandardCharsets.UTF_8).split("\n");
             for (String s : secretLines) {
-                System.out.println("Line: " + s);
-                String[] kv = s.split(": ");
+                String[] kv = s.trim().split(": ");
                 secrets.put(kv[0], kv[1]);
             }
         } catch (IOException ignored) {}

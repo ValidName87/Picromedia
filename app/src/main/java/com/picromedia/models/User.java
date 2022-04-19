@@ -1,6 +1,7 @@
 package com.picromedia.models;
 
 public class User {
+    @PrimaryKey
     public long id;
     public String username;
     public String passwordHash;

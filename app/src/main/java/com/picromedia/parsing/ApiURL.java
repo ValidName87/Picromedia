@@ -46,7 +46,8 @@ public class ApiURL {
             Controller instance;
             try {
                 instance = controllerClass.getConstructor().newInstance();
-                String name = controllerClass.getName().substring(0, "Controller".length());
+                String name = controllerClass.getSimpleName();
+                name = name.substring(0, name.length()-"Controller".length());
                 controllers.put(name, instance);
                 System.out.println(name);
                 System.out.println(instance);

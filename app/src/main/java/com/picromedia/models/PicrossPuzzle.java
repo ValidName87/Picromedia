@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PicrossPuzzle {
+    @PrimaryKey
     public long id;
+    @ForeignKey(table = "User", column = "Id")
     public long creatorId;
     public int[][] horizontalClues;
     public int[][] verticalClues;

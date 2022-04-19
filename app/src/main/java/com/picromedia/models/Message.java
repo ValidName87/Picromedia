@@ -1,8 +1,11 @@
 package com.picromedia.models;
 
 public class Message {
+    @PrimaryKey
     public long id;
+    @ForeignKey(table = "User", column = "Id")
     public long posterId;
+    @ForeignKey(table = "PicrossPuzzle", column = "Id")
     public long puzzleId;
     @SqlType("MEDIUMTEXT")
     public String text;
