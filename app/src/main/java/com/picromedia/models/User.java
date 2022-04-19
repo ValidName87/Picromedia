@@ -1,8 +1,14 @@
 package com.picromedia.models;
 
 public class User {
-    private long id;
-    private String username;
-    private String passwordHash;
-    private String email;
+    public long id;
+    public String username;
+    public String passwordHash;
+    public String email;
+
+    public User(String username, String passwordHash, String email) {
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.email = email;
+    }
 }

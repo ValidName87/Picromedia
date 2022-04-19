@@ -18,6 +18,9 @@ repositories {
 
 dependencies {
     implementation("org.reflections:reflections:0.10.2")
+    implementation("org.slf4j:slf4j-nop:2.0.0-alpha7")
+    implementation("com.oracle.database.jdbc:ojdbc11:21.5.0.0")
+    implementation("mysql:mysql-connector-java:8.0.28")
 }
 
 application {
