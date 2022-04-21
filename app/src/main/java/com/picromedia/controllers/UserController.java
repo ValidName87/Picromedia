@@ -6,8 +6,8 @@ import com.picromedia.models.ReceivingUser;
 import com.picromedia.models.User;
 import com.picromedia.models.SendingUser;
 import com.picromedia.parsing.HTTPResponse;
+import org.apache.commons.codec.binary.Hex;
 
-import javax.swing.plaf.nimbus.State;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -85,11 +85,11 @@ public class UserController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(user.getPassword().getBytes(StandardCharsets.UTF_8));
-            stmt.executeUpdate("INSERT INTO User (Username, PasswordHash, Email) VALUES (" +
-                    user.getUsername() + ", " + new String(hash, StandardCharsets.US_ASCII) + ", " + user.getEmail() + ");");
+            stmt.executeUpdate("INSERT INTO User (Username, PasswordHash, Email) VALUES (\"" +
+                    user.getUsername() + "\", 0x" + Hex.encodeHexString(hash) + ", \"" + user.getEmail() + "\");");
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM User WHERE Username=" + user.getUsername());
-            rs.last();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM User WHERE Email=\"" + user.getEmail() + "\"");
+            rs.next();
             SendingUser responseUser = new SendingUser(rs.getLong("Id"), rs.getString("Username"), rs.getString("Email"));
             response.setBody(gson.toJson(responseUser).getBytes(StandardCharsets.UTF_8));
             response.setStatusCode("201 Created");

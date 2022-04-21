@@ -22,6 +22,7 @@ dependencies {
     implementation("com.oracle.database.jdbc:ojdbc11:21.5.0.0")
     implementation("mysql:mysql-connector-java:8.0.28")
     implementation("com.google.code.gson:gson:2.9.0")
+    implementation("commons-codec:commons-codec:1.15")
 }
 
 application {
