@@ -10,7 +10,9 @@ import com.picromedia.controllers.Controller;
 public class Router {
 
     public static HTTPResponse getResponse(HTTPRequest request) {
-        return request.getPath().startsWith("/api/") ? getAPIResponse(request) : getPageResponse(request);
+        HTTPResponse response = request.getPath().startsWith("/api/") ? getAPIResponse(request) : getPageResponse(request);
+        response.putHeader("Content-Length", String.valueOf(response.getBody().length));
+        return response;
     }
 
     private static HTTPResponse getPageResponse(HTTPRequest request) {

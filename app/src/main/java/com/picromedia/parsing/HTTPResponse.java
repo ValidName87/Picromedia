@@ -88,6 +88,10 @@ public class HTTPResponse {
         this.code = "404 Not Found";
     }
 
+    public void set500() {
+        this.code = "500 Internal Server Error";
+    }
+
     public void set503() {
         this.code = "503 Service Unavailable";
     }

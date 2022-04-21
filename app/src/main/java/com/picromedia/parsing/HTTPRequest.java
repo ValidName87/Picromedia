@@ -9,7 +9,7 @@ public class HTTPRequest {
     private String path;
     private String version;
     private final HashMap<String, String> headers;
-    private byte[] body;
+    private final byte[] body;
 
     public HTTPRequest(List<String> request) {
         try {
