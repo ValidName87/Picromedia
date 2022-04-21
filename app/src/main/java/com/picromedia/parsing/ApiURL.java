@@ -17,18 +17,24 @@ public class ApiURL {
     // api/controller/option1=value1&option2=value2&...
     public ApiURL(String url) throws IllegalArgumentException {
         String[] splitURL = url.split("/");
-        if (splitURL.length < 4) {
+        System.out.println(Arrays.toString(splitURL));
+        if (splitURL.length < 3) {
             throw new IllegalArgumentException();
         }
-        String[] moreSplitURL = splitURL[3].split("&");
         controller = controllers.get(splitURL[2].toLowerCase());
-        for (int i = 1; i < moreSplitURL.length; i++) {
+        if (splitURL.length == 3) {
+            return;
+        }
+        String[] moreSplitURL = splitURL[3].split("&");
+        for (int i = 0; i < moreSplitURL.length; i++) {
             String[] option = moreSplitURL[i].split("=");
             if (option.length < 2) {
                 throw new IllegalArgumentException();
             }
-            options.put(option[0].toLowerCase(), String.join("=",
-                    Arrays.stream(option, 1, option.length).toArray(String[]::new)));
+            String key = option[0].toLowerCase();
+            String value = String.join("=",
+                    Arrays.stream(option, 1, option.length).toArray(String[]::new));
+            options.put(key, value);
         }
     }
 

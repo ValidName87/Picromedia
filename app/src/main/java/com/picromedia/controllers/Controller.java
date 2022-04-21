@@ -16,6 +16,7 @@ public interface Controller {
     default HTTPResponse HEAD(HashMap<String, String> options) {
         HTTPResponse response = GET(options);
         if (response != null) {
+            response.putHeader("Content-Length", String.valueOf(response.getBody().length));
             response.setBody(new byte[]{});
         }
         return response;

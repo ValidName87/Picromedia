@@ -11,7 +11,9 @@ public class Router {
 
     public static HTTPResponse getResponse(HTTPRequest request) {
         HTTPResponse response = request.getPath().startsWith("/api/") ? getAPIResponse(request) : getPageResponse(request);
-        response.putHeader("Content-Length", String.valueOf(response.getBody().length));
+        if (!response.getHeaders().containsKey("Content-Length")) {
+            response.putHeader("Content-Length", String.valueOf(response.getBody().length));
+        }
         return response;
     }
 
