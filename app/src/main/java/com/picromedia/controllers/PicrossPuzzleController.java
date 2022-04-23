@@ -7,6 +7,7 @@ import com.picromedia.parsing.HTTPResponse;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PicrossPuzzleController implements Controller {
-    private static final String PicrossTable = "PicrossPuzzle";
+    static final String PicrossTable = "PicrossPuzzle";
     private final Gson gson;
     private final ReentrantLock reentrantLock;
 
@@ -81,6 +82,27 @@ public class PicrossPuzzleController implements Controller {
         HTTPResponse response = new HTTPResponse();
         String json = new String(content, StandardCharsets.UTF_8);
         PicrossPuzzle puzzle = gson.fromJson(json, PicrossPuzzle.class);
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+        try {
+            if (!AuthController.authById(puzzle.getCreatorId(), authInfo[0], authInfo[1], conn)) {
+                response.set403();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+
         try (Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(String.format("INSERT INTO %s (CreatorId, Solution, Ratings) VALUES (%d, '%s', '%s');",
                     PicrossTable, puzzle.getCreatorId(), gson.toJson(puzzle.getSolution()), gson.toJson(puzzle.getRatings())));
@@ -130,9 +152,18 @@ public class PicrossPuzzleController implements Controller {
             return response;
         }
         response.set204();
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+
         switch (action) {
-            case "updateratings" -> response = updateRating(content, conn);
-            case "updatesolution" -> response = updateSolution(content, conn);
+            case "updateratings" -> response = updateRating(content, conn, authInfo[0], authInfo[1]);
+            case "updatesolution" -> response = updateSolution(content, conn, authInfo[0], authInfo[1]);
             default -> response.set400();
         }
         return response;
@@ -152,6 +183,28 @@ public class PicrossPuzzleController implements Controller {
             response.set400();
             return response;
         }
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+        try {
+            PicrossPuzzle puzzle = getById(id, conn);
+            if (!AuthController.authById(puzzle.getCreatorId(), authInfo[0], authInfo[1], conn)) {
+                response.set403();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+
         try (Statement stmt = conn.createStatement()) {
             int rowsAffected = stmt.executeUpdate(String.format("DELETE FROM %s WHERE Id=%d", PicrossTable, id));
             if (rowsAffected == 0) {
@@ -209,12 +262,18 @@ public class PicrossPuzzleController implements Controller {
         long id;
         HashMap<Long, Integer> ratings;
     }
-    private HTTPResponse updateRating(byte[] content, Connection conn) {
+    private HTTPResponse updateRating(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
         try {
             String json = new String(content, StandardCharsets.UTF_8);
             RatingUpdater ratings = gson.fromJson(json, RatingUpdater.class);
             PicrossPuzzle puzzle = getById(ratings.id, conn);
+
+            if (!AuthController.authById(puzzle.getCreatorId(), username, password, conn)) {
+                response.set403();
+                return response;
+            }
+
             puzzle.getRatings().putAll(ratings.ratings);
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(String.format("UPDATE %s SET Ratings='%s' WHERE Id=%d",
@@ -222,7 +281,7 @@ public class PicrossPuzzleController implements Controller {
                 response.set204();
                 return response;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | NoSuchAlgorithmException e) {
             response.set500();
             return response;
         } catch (NotFoundException e) {
@@ -235,19 +294,29 @@ public class PicrossPuzzleController implements Controller {
         long id;
         int[][] solution;
     }
-    private HTTPResponse updateSolution(byte[] content, Connection conn) {
+    private HTTPResponse updateSolution(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
         try {
             String json = new String(content, StandardCharsets.UTF_8);
             SolutionUpdater solution = gson.fromJson(json, SolutionUpdater.class);
+
+            PicrossPuzzle puzzle = getById(solution.id, conn);
+            if (!AuthController.authById(puzzle.getCreatorId(), username, password, conn)) {
+                response.set403();
+                return response;
+            }
+
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(String.format("UPDATE %s SET Solution='%s' WHERE Id=%d",
                         PicrossTable, gson.toJson(solution.solution), solution.id));
                 response.set204();
                 return response;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | NoSuchAlgorithmException e) {
             response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
             return response;
         }
     }

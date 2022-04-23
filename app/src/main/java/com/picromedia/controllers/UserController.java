@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class UserController implements Controller {
-    private static final String UserTable = "User";
+    static final String UserTable = "User";
     private final Gson gson;
     private final ReentrantLock reentrantLock;
     public UserController () {
@@ -98,8 +98,15 @@ public class UserController implements Controller {
             response.setBody(gson.toJson(responseUser).getBytes(StandardCharsets.UTF_8));
             response.putHeader("Content-Type", "application/json");
             return response;
-        } catch (SQLException | NoSuchAlgorithmException | NotFoundException e) {
+        } catch (NoSuchAlgorithmException | NotFoundException e) {
             response.set500();
+            return response;
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1062) {
+                response.setStatusCode("409 Conflict");
+            } else {
+                response.set500();
+            }
             return response;
         }
     }

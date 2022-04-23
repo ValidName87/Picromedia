@@ -100,4 +100,9 @@ public class HTTPResponse {
         this.code = "201 Created";
 
     }
+
+    public void set405(String allowedMethods) {
+        this.code = "405 Method Not Allowed";
+        this.headers.put("Allow", allowedMethods);
+    }
 }

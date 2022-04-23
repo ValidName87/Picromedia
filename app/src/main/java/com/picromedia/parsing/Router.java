@@ -103,6 +103,8 @@ public class Router {
             return response;
         }
 
+        url.getOptions().put("Authorization", request.getHeaderValue("Authorization"));
+
         controller.lock();
         try {
             switch (request.getVerb()) {

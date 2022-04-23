@@ -5,6 +5,7 @@ import com.picromedia.models.Message;
 import com.picromedia.parsing.HTTPResponse;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MessageController implements Controller {
-    private static final String MessageTable = "Message";
+    static final String MessageTable = "Message";
     private final Gson gson;
     private final ReentrantLock reentrantLock;
 
@@ -82,6 +83,27 @@ public class MessageController implements Controller {
         HTTPResponse response = new HTTPResponse();
         String json = new String(content, StandardCharsets.UTF_8);
         Message message = gson.fromJson(json, Message.class);
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+        try {
+            if (!AuthController.authById(message.getCreatorId(), authInfo[0], authInfo[1], conn)) {
+                response.set403();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+
         try (Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(String.format("INSERT INTO %s (CreatorId, PuzzleId, Message) VALUES (%d, %d, '%s');",
                     MessageTable, message.getCreatorId(), message.getPuzzleId(), message.getMessage()));
@@ -132,9 +154,18 @@ public class MessageController implements Controller {
             response.set400();
             return response;
         }
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+
         response.set204();
         switch (action) {
-            case "updatemessage" -> response = updateMessage(content, conn);
+            case "updatemessage" -> response = updateMessage(content, conn, authInfo[0], authInfo[1]);
             default -> response.set400();
         }
         return response;
@@ -154,6 +185,29 @@ public class MessageController implements Controller {
             response.set400();
             return response;
         }
+
+        String[] authInfo;
+        try {
+            authInfo = options.get("Authorization").split(":");
+        } catch (NullPointerException e) {
+            response.set403();
+            return response;
+        }
+        try {
+            Message message = getById(id, conn);
+            if (!AuthController.authById(message.getCreatorId(), authInfo[0], authInfo[1], conn)) {
+                response.set403();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+
+
         try (Statement stmt = conn.createStatement()) {
             int rowsAffected = stmt.executeUpdate(String.format("DELETE FROM %s WHERE Id=%d", MessageTable, id));
             if (rowsAffected == 0) {
@@ -219,19 +273,29 @@ public class MessageController implements Controller {
         String message;
     }
 
-    private HTTPResponse updateMessage(byte[] content, Connection conn) {
+    private HTTPResponse updateMessage(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
         try {
             String json = new String(content, StandardCharsets.UTF_8);
             MessageUpdater message = gson.fromJson(json, MessageUpdater.class);
+
+            Message messageToUpdate = getById(message.id, conn);
+            if (!AuthController.authById(messageToUpdate.getCreatorId(), username, password, conn)) {
+                response.set403();
+                return response;
+            }
+
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(String.format("UPDATE %s SET Message='%s' WHERE Id=%d",
                         MessageTable, message.message, message.id));
                 response.set204();
                 return response;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | NoSuchAlgorithmException e) {
             response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
             return response;
         }
     }
