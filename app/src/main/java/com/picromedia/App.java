@@ -1,19 +1,9 @@
 package com.picromedia;
 
-import com.google.gson.Gson;
-import com.picromedia.controllers.MessageController;
-import com.picromedia.controllers.PicrossPuzzleController;
-import com.picromedia.models.PicrossPuzzle;
 import com.picromedia.parsing.ApiURL;
-import com.picromedia.parsing.HTTPResponse;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
