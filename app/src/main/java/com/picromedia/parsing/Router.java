@@ -3,14 +3,15 @@ package com.picromedia.parsing;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.util.Arrays;
 
 import com.picromedia.controllers.Controller;
 
 public class Router {
 
-    public static HTTPResponse getResponse(HTTPRequest request) {
-        HTTPResponse response = request.getPath().startsWith("/api/") ? getAPIResponse(request) : getPageResponse(request);
+    public static HTTPResponse getResponse(HTTPRequest request, Connection sqlConnection) {
+        HTTPResponse response = request.getPath().startsWith("/api/") ? getAPIResponse(request, sqlConnection) : getPageResponse(request);
         if (!response.getHeaders().containsKey("Content-Length")) {
             response.putHeader("Content-Length", String.valueOf(response.getBody().length));
         }
@@ -86,7 +87,7 @@ public class Router {
         }
     }
 
-    private static HTTPResponse getAPIResponse(HTTPRequest request) {
+    private static HTTPResponse getAPIResponse(HTTPRequest request, Connection sqlConnection) {
         ApiURL url;
         try {
             url = new ApiURL(request.getPath());
@@ -106,15 +107,15 @@ public class Router {
         try {
             switch (request.getVerb()) {
                 case "GET":
-                    return controller.GET(url.getOptions());
+                    return controller.GET(url.getOptions(), sqlConnection);
                 case "POST":
-                    return controller.POST(url.getOptions(), request.getBody());
+                    return controller.POST(url.getOptions(), request.getBody(), sqlConnection);
                 case "PUT":
-                    return controller.PUT(url.getOptions(), request.getBody());
+                    return controller.PUT(url.getOptions(), request.getBody(), sqlConnection);
                 case "DELETE":
-                    return controller.DELETE(url.getOptions());
+                    return controller.DELETE(url.getOptions(), sqlConnection);
                 case "HEAD":
-                    return controller.HEAD(url.getOptions());
+                    return controller.HEAD(url.getOptions(), sqlConnection);
                 default:
                     HTTPResponse response = new HTTPResponse();
                     response.setStatusCode("501 Not Implemented");

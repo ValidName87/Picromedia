@@ -1,7 +1,6 @@
 package com.picromedia.controllers;
 
 import com.google.gson.Gson;
-import com.picromedia.SecretsManager;
 import com.picromedia.models.ReceivingUser;
 import com.picromedia.models.User;
 import com.picromedia.models.SendingUser;
@@ -21,18 +20,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public class UserController implements Controller {
     private static final String UserTable = "User";
     private final Gson gson;
-    private final Connection conn;
     private final ReentrantLock reentrantLock;
     public UserController () {
         gson = new Gson();
         reentrantLock = new ReentrantLock();
-        try {
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/picromedia",
-                    SecretsManager.getSecret("SqlUser"), SecretsManager.getSecret("SqlPass"));
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
 
 
@@ -46,40 +37,46 @@ public class UserController implements Controller {
         reentrantLock.unlock();
     }
 
+    /*
+    * By default, returns a list of all users
+    * Options (In order of precedence):
+    * id: If present, returns a user with the given id
+    */
     @Override
-    public HTTPResponse GET(HashMap<String, String> options) {
+    public HTTPResponse GET(HashMap<String, String> options, Connection conn) {
         HTTPResponse response = new HTTPResponse();
-        if (options.containsKey("id")) {
-            try {
-                User user = getById(Long.parseLong(options.get("id")));
-                response.set200();
-                response.setBody(gson.toJson(new SendingUser(user)).getBytes(StandardCharsets.UTF_8));
-                return response;
-            } catch (NumberFormatException e) {
-                response.set400();
-                return response;
-            } catch (SQLException e) {
-                response.set500();
-                return response;
-            } catch (NotFoundException e) {
-                response.set404();
-                return response;
-            }
-        }
-        List<User> users;
+
         try {
-            users = getAllUsers();
+            if (options.containsKey("id")) {
+                User user = getById(Long.parseLong(options.get("id")), conn);
+                response.setBody(gson.toJson(new SendingUser(user)).getBytes(StandardCharsets.UTF_8));
+            } else {
+                List<User> users = getAllUsers(conn);
+                response.setBody(gson.toJson(users.stream().map(SendingUser::new).toList()).getBytes(StandardCharsets.UTF_8));
+            }
+            response.set200();
+            response.putHeader("Content-Type", "application/json");
+            return response;
+        } catch (NumberFormatException e) {
+            response.set400();
+            return response;
         } catch (SQLException e) {
             response.set500();
             return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
         }
-        response.set200();
-        response.setBody(gson.toJson(users.stream().map(SendingUser::new).toList()).getBytes(StandardCharsets.UTF_8));
-        return response;
     }
 
+    /*
+    * Json Format:
+    * username: string - The username of the new user
+    * password: string - The password of the new user
+    * email: string - The email of the new user
+    */
     @Override
-    public HTTPResponse POST(HashMap<String, String> options, byte[] content) {
+    public HTTPResponse POST(HashMap<String, String> options, byte[] content, Connection conn) {
         HTTPResponse response = new HTTPResponse();
         String json = new String(content, StandardCharsets.UTF_8);
         ReceivingUser user = gson.fromJson(json, ReceivingUser.class);
@@ -87,33 +84,34 @@ public class UserController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(user.getPassword().getBytes(StandardCharsets.UTF_8));
-            stmt.executeUpdate("INSERT INTO " + UserTable + " (Username, PasswordHash, Email) VALUES (\"" +
-                    user.getUsername() + "\", 0x" + Hex.encodeHexString(hash) + ", \"" + user.getEmail() + "\");");
+            stmt.executeUpdate(String.format("INSERT INTO %s (Username, PasswordHash, Email) VALUES ('%s', 0x%s, '%s');",
+                    UserTable, user.getUsername(), Hex.encodeHexString(hash), user.getEmail()));
 
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + UserTable + " WHERE Email=\"" + user.getEmail() + "\"");
-            rs.next();
-            SendingUser responseUser = new SendingUser(rs.getLong("Id"), rs.getString("Username"), rs.getString("Email"));
+            ResultSet rs = stmt.executeQuery("SELECT LAST_INSERT_ID()");
+            if (!rs.next()) {
+                response.set500();
+                return response;
+            }
+            long id = rs.getLong("LAST_INSERT_ID()");
+            SendingUser responseUser = new SendingUser(getById(id, conn));
+            response.set201();
             response.setBody(gson.toJson(responseUser).getBytes(StandardCharsets.UTF_8));
-            response.setStatusCode("201 Created");
+            response.putHeader("Content-Type", "application/json");
             return response;
-        } catch (SQLException | NoSuchAlgorithmException e) {
+        } catch (SQLException | NoSuchAlgorithmException | NotFoundException e) {
             response.set500();
             return response;
         }
     }
 
     @Override
-    public HTTPResponse PUT(HashMap<String, String> options, byte[] content) {
-        return POST(options, content);
+    public HTTPResponse PUT(HashMap<String, String> options, byte[] content, Connection conn) {
+        return POST(options, content, conn);
     }
 
     @Override
-    public HTTPResponse DELETE(HashMap<String, String> options) {
+    public HTTPResponse DELETE(HashMap<String, String> options, Connection conn) {
         HTTPResponse response = new HTTPResponse();
-        if (!options.containsKey("id")) {
-            response.set400();
-            return response;
-        }
         long id;
         try {
             id = Long.parseLong(options.get("id"));
@@ -122,7 +120,11 @@ public class UserController implements Controller {
             return response;
         }
         try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(String.format("DELETE FROM " + UserTable + " WHERE Id=%d", id));
+            int rowsAffected = stmt.executeUpdate(String.format("DELETE FROM %s WHERE Id=%d", UserTable, id));
+            if (rowsAffected == 0) {
+                response.set404();
+                return response;
+            }
             response.set204();
             return response;
         } catch (SQLException e) {
@@ -131,9 +133,9 @@ public class UserController implements Controller {
         }
     }
 
-    private User getById(long id) throws SQLException, NotFoundException {
+    private User getById(long id, Connection conn) throws SQLException, NotFoundException {
         try (Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM " + UserTable + " WHERE Id=%d", id));
+            ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s WHERE Id=%d", UserTable, id));
             if (!rs.next()) {
                 throw new NotFoundException(String.format("No user with the id %d was found", id));
             }
@@ -141,7 +143,7 @@ public class UserController implements Controller {
         }
     }
 
-    private List<User> getAllUsers() throws SQLException {
+    private List<User> getAllUsers(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             List<User> userList = new ArrayList<>();
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + UserTable);

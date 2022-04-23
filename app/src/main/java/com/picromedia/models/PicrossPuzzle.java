@@ -16,6 +16,13 @@ public class PicrossPuzzle {
         ratings = new HashMap<>();
     }
 
+    public PicrossPuzzle(long id, long creatorId, int[][] solution, HashMap<Long, Integer> ratings) {
+        this.id = id;
+        this.creatorId = creatorId;
+        this.solution = solution;
+        this.ratings = ratings;
+    }
+
     public long getId() {
         return id;
     }

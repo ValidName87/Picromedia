@@ -95,4 +95,9 @@ public class HTTPResponse {
     public void set503() {
         this.code = "503 Service Unavailable";
     }
+
+    public void set201() {
+        this.code = "201 Created";
+
+    }
 }

@@ -2,22 +2,29 @@ package com.picromedia.models;
 
 public class Message {
     private long id;
-    private long posterId;
+    private long creatorId;
     private long puzzleId;
-    private String text;
+    private String message;
 
-    public Message(long posterId, long puzzleId, String text) {
-        this.posterId = posterId;
+    public Message(long creatorId, long puzzleId, String message) {
+        this.creatorId = creatorId;
         this.puzzleId = puzzleId;
-        this.text = text;
+        this.message = message;
     }
 
-    public long getPosterId() {
-        return posterId;
+    public Message(long id, long creatorId, long puzzleId, String message) {
+        this.id = id;
+        this.creatorId = creatorId;
+        this.puzzleId = puzzleId;
+        this.message = message;
     }
 
-    public void setPosterId(long posterId) {
-        this.posterId = posterId;
+    public long getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(long posterId) {
+        this.creatorId = posterId;
     }
 
     public long getPuzzleId() {
@@ -28,12 +35,12 @@ public class Message {
         this.puzzleId = puzzleId;
     }
 
-    public String getText() {
-        return text;
+    public String getMessage() {
+        return message;
     }
 
-    public void setText(String text) {
-        this.text = text;
+    public void setMessage(String text) {
+        this.message = text;
     }
 
     public long getId() {

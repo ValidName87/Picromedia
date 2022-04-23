@@ -26,8 +26,8 @@ public class ApiURL {
             return;
         }
         String[] moreSplitURL = splitURL[3].split("&");
-        for (int i = 0; i < moreSplitURL.length; i++) {
-            String[] option = moreSplitURL[i].split("=");
+        for (String s : moreSplitURL) {
+            String[] option = s.split("=");
             if (option.length < 2) {
                 throw new IllegalArgumentException();
             }
@@ -47,7 +47,6 @@ public class ApiURL {
     }
 
     public static void init() {
-        System.out.println("Running APIUrl init");
         Reflections reflections = new Reflections("com.picromedia.controllers");
         Set<Class<? extends Controller>> controllerClasses = reflections.getSubTypesOf(Controller.class);
         controllerClasses.forEach((Class<? extends Controller> controllerClass) -> {
@@ -58,7 +57,6 @@ public class ApiURL {
                 name = name.substring(0, name.length()-"Controller".length()).toLowerCase();
                 controllers.put(name, instance);
                 System.out.println(name);
-                System.out.println(instance);
             } catch (Exception e) {
                 e.printStackTrace();
             }

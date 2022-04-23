@@ -6,6 +6,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,9 +18,17 @@ import com.picromedia.parsing.Router;
 
 public class ConnectionHandler implements Runnable {
     private final Socket socket;
+    private final Connection sqlConnection;
 
     public ConnectionHandler(Socket socket) {
         this.socket = socket;
+        try {
+            sqlConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/picromedia",
+                    SecretsManager.getSecret("SqlUser"), SecretsManager.getSecret("SqlPass"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     public void run() {
@@ -31,7 +42,7 @@ public class ConnectionHandler implements Runnable {
             } while (in.ready());
             HTTPRequest request = new HTTPRequest(input);
 
-            HTTPResponse response = Router.getResponse(request);
+            HTTPResponse response = Router.getResponse(request, sqlConnection);
 
             System.out.println(request);
             System.out.println(response.toStringBodyless() + new String(response.getBody(), StandardCharsets.UTF_8));
