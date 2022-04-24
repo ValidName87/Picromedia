@@ -1,6 +1,8 @@
 package com.picromedia.models;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class PicrossPuzzle {
     private long id;
@@ -8,15 +10,15 @@ public class PicrossPuzzle {
     private int[][] solution;
     // Key = Id of whoever rated it
     // Value = Rating
-    private final HashMap<Long, Integer> ratings;
+    private final List<Rating> ratings;
 
     public PicrossPuzzle(long creatorId, int[][] solution) {
         this.creatorId = creatorId;
         this.solution = solution;
-        ratings = new HashMap<>();
+        ratings = new ArrayList<>();
     }
 
-    public PicrossPuzzle(long id, long creatorId, int[][] solution, HashMap<Long, Integer> ratings) {
+    public PicrossPuzzle(long id, long creatorId, int[][] solution, List<Rating> ratings) {
         this.id = id;
         this.creatorId = creatorId;
         this.solution = solution;
@@ -35,12 +37,12 @@ public class PicrossPuzzle {
         this.creatorId = creatorId;
     }
 
-    public HashMap<Long, Integer> getRatings() {
+    public List<Rating> getRatings() {
         return ratings;
     }
 
-    public void addRating(long raterId, int rating) {
-        ratings.put(raterId, rating);
+    public void addRating(Rating rating) {
+        ratings.add(rating);
     }
 
     public int[][] getSolution() {
@@ -49,5 +51,23 @@ public class PicrossPuzzle {
 
     public void setSolution(int[][] solution) {
         this.solution = solution;
+    }
+
+    public static class Rating {
+        long raterId;
+        int rating;
+
+        public Rating(long raterId, int rating) {
+            this.raterId = raterId;
+            this.rating = rating;
+        }
+
+        public long getRaterId() {
+            return raterId;
+        }
+
+        public int getRating() {
+            return rating;
+        }
     }
 }

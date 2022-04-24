@@ -12,6 +12,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PicrossPuzzleController implements Controller {
@@ -260,7 +261,12 @@ public class PicrossPuzzleController implements Controller {
 
     static class RatingUpdater {
         long id;
-        HashMap<Long, Integer> ratings;
+        List<ChangeRating> changes;
+    }
+    static class ChangeRating {
+        long raterId;
+        int rating;
+        String action;
     }
     private HTTPResponse updateRating(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
@@ -274,7 +280,12 @@ public class PicrossPuzzleController implements Controller {
                 return response;
             }
 
-            puzzle.getRatings().putAll(ratings.ratings);
+            for (ChangeRating change : ratings.changes) {
+                switch (change.action.toLowerCase()) {
+                    case "add" -> puzzle.getRatings().add(new PicrossPuzzle.Rating(change.raterId, change.rating));
+                    case "remove" -> puzzle.getRatings().removeIf((PicrossPuzzle.Rating r) -> r.getRaterId() == change.raterId);
+                }
+            }
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(String.format("UPDATE %s SET Ratings='%s' WHERE Id=%d",
                         PicrossTable, gson.toJson(puzzle.getRatings()), ratings.id));
