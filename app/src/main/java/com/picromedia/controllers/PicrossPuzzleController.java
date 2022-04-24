@@ -12,7 +12,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PicrossPuzzleController implements Controller {
@@ -163,7 +162,7 @@ public class PicrossPuzzleController implements Controller {
         }
 
         switch (action) {
-            case "updateratings" -> response = updateRating(content, conn, authInfo[0], authInfo[1]);
+            case "updateratings" -> response = updateRatings(content, conn, authInfo[0], authInfo[1]);
             case "updatesolution" -> response = updateSolution(content, conn, authInfo[0], authInfo[1]);
             default -> response.set400();
         }
@@ -268,7 +267,7 @@ public class PicrossPuzzleController implements Controller {
         int rating;
         String action;
     }
-    private HTTPResponse updateRating(byte[] content, Connection conn, String username, String password) {
+    private HTTPResponse updateRatings(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
         try {
             String json = new String(content, StandardCharsets.UTF_8);
@@ -282,7 +281,11 @@ public class PicrossPuzzleController implements Controller {
 
             for (ChangeRating change : ratings.changes) {
                 switch (change.action.toLowerCase()) {
-                    case "add" -> puzzle.getRatings().add(new PicrossPuzzle.Rating(change.raterId, change.rating));
+                    case "add" -> {
+                        if (puzzle.getRatings().stream().noneMatch((PicrossPuzzle.Rating r) -> r.getRaterId() == change.raterId)) {
+                            puzzle.getRatings().add(new PicrossPuzzle.Rating(change.raterId, change.rating));
+                        }
+                    }
                     case "remove" -> puzzle.getRatings().removeIf((PicrossPuzzle.Rating r) -> r.getRaterId() == change.raterId);
                 }
             }
