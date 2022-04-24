@@ -1,7 +1,7 @@
 package com.picromedia.models;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class PicrossPuzzle {
@@ -11,6 +11,8 @@ public class PicrossPuzzle {
     // Key = Id of whoever rated it
     // Value = Rating
     private final List<Rating> ratings;
+
+    private Instant lastEdited;
 
     public PicrossPuzzle(long creatorId, int[][] solution) {
         this.creatorId = creatorId;
@@ -23,6 +25,15 @@ public class PicrossPuzzle {
         this.creatorId = creatorId;
         this.solution = solution;
         this.ratings = ratings;
+        this.lastEdited = Instant.now();
+    }
+
+    public PicrossPuzzle(long id, long creatorId, int[][] solution, List<Rating> ratings, Instant lastEdited) {
+        this.id = id;
+        this.creatorId = creatorId;
+        this.solution = solution;
+        this.ratings = ratings;
+        this.lastEdited = lastEdited;
     }
 
     public long getId() {
@@ -51,6 +62,14 @@ public class PicrossPuzzle {
 
     public void setSolution(int[][] solution) {
         this.solution = solution;
+    }
+
+    public Instant getLastEdited() {
+        return lastEdited;
+    }
+
+    public void setLastEdited(Instant lastEdited) {
+        this.lastEdited = lastEdited;
     }
 
     public static class Rating {

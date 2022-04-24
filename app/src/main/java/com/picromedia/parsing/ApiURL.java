@@ -33,7 +33,7 @@ public class ApiURL {
             }
             String key = option[0].toLowerCase();
             String value = String.join("=",
-                    Arrays.stream(option, 1, option.length).toArray(String[]::new));
+                    Arrays.stream(option, 1, option.length).toArray(String[]::new)).toLowerCase();
             options.put(key, value);
         }
     }

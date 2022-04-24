@@ -1,7 +1,10 @@
 package com.picromedia.controllers;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.picromedia.json.InstantDeserializer;
+import com.picromedia.json.InstantSerializer;
 import com.picromedia.models.PicrossPuzzle;
 import com.picromedia.parsing.HTTPResponse;
 
@@ -9,7 +12,9 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,7 +25,10 @@ public class PicrossPuzzleController implements Controller {
     private final ReentrantLock reentrantLock;
 
     public PicrossPuzzleController() {
-        gson = new Gson();
+        gson = new GsonBuilder()
+                .registerTypeAdapter(Instant.class, new InstantSerializer())
+                .registerTypeAdapter(Instant.class, new InstantDeserializer())
+                .create();
         reentrantLock = new ReentrantLock();
     }
 
@@ -39,6 +47,14 @@ public class PicrossPuzzleController implements Controller {
     * Options (In order of precedence):
     * id: If present, get the puzzle with the given id
     * madeBy: If present, gets the puzzles made by the user with the given id
+    * sortBy: If getting multiple results, specifies how to sort them
+    *   Values: LastEdited
+    * Json Format:
+    * creatorId: number - The id of the puzzle creator
+    * solution: 2d number array - Each inner array represents one row of the board;
+    *   a value of 0 means the given square is empty, and 1 means filled
+    * ratings: object - The keys are the ids of the people leaving ratings and the values are the ratings
+    * lastEdited: string - A string representing the timestamp in UTC, format yyyy-MM-ddThh:mm:ssZ
     */
     @Override
     public HTTPResponse GET(HashMap<String, String> options, Connection conn) {
@@ -50,9 +66,15 @@ public class PicrossPuzzleController implements Controller {
                 response.setBody(gson.toJson(puzzle).getBytes(StandardCharsets.UTF_8));
             } else if (options.containsKey("madeby")) {
                 List<PicrossPuzzle> puzzles = getByCreator(Long.parseLong(options.get("madeby")), conn);
+                if ("lastedited".equals(options.get("sortby"))) {
+                    puzzles.sort(Comparator.comparing(PicrossPuzzle::getLastEdited));
+                }
                 response.setBody(gson.toJson(puzzles).getBytes(StandardCharsets.UTF_8));
             } else {
                 List<PicrossPuzzle> puzzles = getAllPuzzles(conn);
+                if ("lastedited".equals(options.get("sortby"))) {
+                    puzzles.sort(Comparator.comparing(PicrossPuzzle::getLastEdited));
+                }
                 response.setBody(gson.toJson(puzzles).getBytes(StandardCharsets.UTF_8));
             }
             response.set200();
@@ -62,6 +84,7 @@ public class PicrossPuzzleController implements Controller {
             response.set400();
             return response;
         } catch (SQLException e) {
+            e.printStackTrace();
             response.set500();
             return response;
         } catch (NotFoundException e) {
@@ -227,7 +250,8 @@ public class PicrossPuzzleController implements Controller {
             }
             Type hashMapToken = new TypeToken<HashMap<Long, Integer>>() {}.getType();
             return new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                    gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken));
+                    gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                    rs.getTimestamp("LastEdited").toInstant());
         }
     }
 
@@ -235,10 +259,11 @@ public class PicrossPuzzleController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             List<PicrossPuzzle> puzzleList = new ArrayList<>();
             ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s WHERE CreatorId=%d", PicrossTable, id));
-            Type hashMapToken = new TypeToken<HashMap<Long, Integer>>() {}.getType();
+            Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken)));
+                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                        rs.getTimestamp("LastEdited").toInstant()));
             }
             return puzzleList;
         }
@@ -248,11 +273,11 @@ public class PicrossPuzzleController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             List<PicrossPuzzle> puzzleList = new ArrayList<>();
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + PicrossTable);
-            Type hashMapToken = new TypeToken<HashMap<Long, Integer>>() {
-            }.getType();
+            Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken)));
+                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                        rs.getTimestamp("LastEdited").toInstant()));
             }
             return puzzleList;
         }
@@ -321,7 +346,7 @@ public class PicrossPuzzleController implements Controller {
             }
 
             try (Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(String.format("UPDATE %s SET Solution='%s' WHERE Id=%d",
+                stmt.executeUpdate(String.format("UPDATE %s SET Solution='%s', LastEdited=CURRENT_TIMESTAMP WHERE Id=%d",
                         PicrossTable, gson.toJson(solution.solution), solution.id));
                 response.set204();
                 return response;
