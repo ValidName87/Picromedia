@@ -113,7 +113,9 @@ public class UserController implements Controller {
 
     @Override
     public HTTPResponse PUT(HashMap<String, String> options, byte[] content, Connection conn) {
-        return POST(options, content, conn);
+        HTTPResponse response = new HTTPResponse();
+        response.set405("GET, POST, DELETE, HEAD");
+        return response;
     }
 
     @Override

@@ -13,7 +13,7 @@ public class App {
         ApiURL.init();
         System.out.println(">> Server starting!");
         ExecutorService threadPool = Executors.newFixedThreadPool(4);
-        try (ServerSocket socket = new ServerSocket(4747)) {
+        try (ServerSocket socket = new ServerSocket(80)) {
             while (true) {
                 Socket clientSocket = socket.accept();
                 threadPool.execute(new ConnectionHandler(clientSocket));
