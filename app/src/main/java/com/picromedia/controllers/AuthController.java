@@ -1,6 +1,7 @@
 package com.picromedia.controllers;
 
 import com.google.gson.Gson;
+import com.picromedia.models.SendingUser;
 import com.picromedia.parsing.HTTPResponse;
 
 import java.nio.charset.StandardCharsets;
@@ -42,8 +43,18 @@ public class AuthController implements Controller {
 
         try {
             if (auth(authInfo[0], authInfo[1], conn)) {
-                response.set200();
-                return response;
+                try (Statement stmt = conn.createStatement()) {
+                    ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s WHERE Username='%s'", UserTable, authInfo[0]));
+                    if (!rs.next()) {
+                        response.set404();
+                        return response;
+                    }
+                    response.setBody(gson.toJson(new SendingUser(
+                            rs.getLong("Id"), rs.getString("Username"), rs.getString("Email")))
+                            .getBytes(StandardCharsets.UTF_8));
+                    response.set200();
+                    return response;
+                }
             }
             response.set403();
             return response;
@@ -87,9 +98,9 @@ public class AuthController implements Controller {
         lock.unlock();
     }
 
-    public static boolean auth(String username, String password, Connection conn) throws NotFoundException, SQLException, NoSuchAlgorithmException {
+    private static boolean auth(String username, String password, Connection conn) throws NotFoundException, SQLException, NoSuchAlgorithmException {
         try (Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery(String.format("SELECT (PasswordHash) FROM %s WHERE Username=%s", UserTable, username));
+            ResultSet rs = stmt.executeQuery(String.format("SELECT (PasswordHash) FROM %s WHERE Username='%s'", UserTable, username));
             if (!rs.next()) {
                 throw new NotFoundException();
             }
