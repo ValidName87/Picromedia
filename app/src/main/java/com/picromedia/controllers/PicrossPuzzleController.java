@@ -167,9 +167,9 @@ public class PicrossPuzzleController implements Controller {
     * JsonFormat:
     * id: number - The id of the puzzle to update
     * changes: object array - Each object represents a change to be made, the keys are as follows
-    *   action: string - The action to take; can be “add” or “remove”
+    *   action: string - The action to take; can be "add" or "remove"
     *   raterId: number - The id of the person rating the puzzle
-    *   rating: number - The rating left by the person (Only needed if action is “add”)
+    *   rating: number - The rating left by the person (Only needed if action is "add")
     * solution: number array (UpdateSolution only) - The new solution
     * message: string (UpdateMessage only) - The new message
     * title: string (UpdateTitle only) - The new title
