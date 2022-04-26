@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.picromedia.json.InstantDeserializer;
 import com.picromedia.json.InstantSerializer;
-import com.picromedia.models.Message;
 import com.picromedia.models.PicrossPuzzle;
 import com.picromedia.parsing.HTTPResponse;
 
