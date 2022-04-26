@@ -14,26 +14,33 @@ public class PicrossPuzzle {
 
     private Instant lastEdited;
 
+    private String message;
+    private String title;
+
     public PicrossPuzzle(long creatorId, int[] solution) {
         this.creatorId = creatorId;
         this.solution = solution;
         ratings = new ArrayList<>();
     }
 
-    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings) {
+    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings, String message, String title) {
         this.id = id;
         this.creatorId = creatorId;
         this.solution = solution;
         this.ratings = ratings;
         this.lastEdited = Instant.now();
+        this.message = message;
+        this.title = title;
     }
 
-    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings, Instant lastEdited) {
+    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings, Instant lastEdited, String message, String title) {
         this.id = id;
         this.creatorId = creatorId;
         this.solution = solution;
         this.ratings = ratings;
         this.lastEdited = lastEdited;
+        this.message = message;
+        this.title = title;
     }
 
     public long getId() {
@@ -70,6 +77,22 @@ public class PicrossPuzzle {
 
     public void setLastEdited(Instant lastEdited) {
         this.lastEdited = lastEdited;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public static class Rating {

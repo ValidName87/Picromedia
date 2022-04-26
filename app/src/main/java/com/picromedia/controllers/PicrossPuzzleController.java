@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.picromedia.json.InstantDeserializer;
 import com.picromedia.json.InstantSerializer;
+import com.picromedia.models.Message;
 import com.picromedia.models.PicrossPuzzle;
 import com.picromedia.parsing.HTTPResponse;
 
@@ -51,10 +52,12 @@ public class PicrossPuzzleController implements Controller {
     *   Values: LastEdited
     * Json Format:
     * creatorId: number - The id of the puzzle creator
-    * solution: 2d number array - Each inner array represents one row of the board;
-    *   a value of 0 means the given square is empty, and 1 means filled
+    * solution: number array - A 0 means the square is empty, a 1 means it’s filled.
+    *   Squares go left to right as index increases, restarting at the left edge when it hits the end of a row.
     * ratings: object - The keys are the ids of the people leaving ratings and the values are the ratings
     * lastEdited: string - A string representing the timestamp in UTC, format yyyy-MM-ddThh:mm:ssZ
+    * message: string - The message begin the puzzle
+    * title: string - The title of the puzzle
     */
     @Override
     public HTTPResponse GET(HashMap<String, String> options, Connection conn) {
@@ -96,9 +99,11 @@ public class PicrossPuzzleController implements Controller {
     /*
     * Json Format:
     * creatorId: number - The id of the puzzle creator
-    * solution: 2d number array - Each inner array represents one row of the board;
-    *   a value of 0 means the given square is empty, and 1 means filled
+    * solution: number array - A 0 means the square is empty, a 1 means it’s filled.
+    *   Squares go left to right as index increases, restarting at the left edge when it hits the end of a row.
     * ratings: object - The keys are the ids of the people leaving ratings and the values are the ratings
+    * message: string - The message begin the puzzle
+    * title: string - The title of the puzzle
     */
     @Override
     public HTTPResponse POST(HashMap<String, String> options, byte[] content, Connection conn) {
@@ -127,8 +132,9 @@ public class PicrossPuzzleController implements Controller {
         }
 
         try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(String.format("INSERT INTO %s (CreatorId, Solution, Ratings) VALUES (%d, '%s', '%s');",
-                    PicrossTable, puzzle.getCreatorId(), gson.toJson(puzzle.getSolution()), gson.toJson(puzzle.getRatings())));
+            stmt.executeUpdate(String.format("INSERT INTO %s (CreatorId, Solution, Ratings, Message, Title) VALUES (%d, '%s', '%s', '%s', '%s');",
+                    PicrossTable, puzzle.getCreatorId(), gson.toJson(puzzle.getSolution()), gson.toJson(puzzle.getRatings()),
+                            puzzle.getMessage(), puzzle.getTitle()));
 
             ResultSet rs = stmt.executeQuery("SELECT LAST_INSERT_ID()");
             if (!rs.next()) {
@@ -157,14 +163,17 @@ public class PicrossPuzzleController implements Controller {
     /*
     * Options:
     * action (required): What action to do
-    *   Values: UpdateRatings, UpdateSolution
+    *   Values: UpdateRatings, UpdateSolution, UpdateMessage, UpdateTitle
     *
     * JsonFormat:
     * id: number - The id of the puzzle to update
-    * ratings: object (UpdateRatings only) - The keys are the ids of the people leaving ratings
-    *   and the values are the ratings
-    * solution: 2d number array (UpdateSolution only) - Each inner array represents one row of the board;
-     *   a value of 0 means the given square is empty, and 1 means filled
+    * changes: object array - Each object represents a change to be made, the keys are as follows
+    *   action: string - The action to take; can be “add” or “remove”
+    *   raterId: number - The id of the person rating the puzzle
+    *   rating: number - The rating left by the person (Only needed if action is “add”)
+    * solution: number array (UpdateSolution only) - The new solution
+    * message: string (UpdateMessage only) - The new message
+    * title: string (UpdateTitle only) - The new title
     */
     @Override
     public HTTPResponse PUT(HashMap<String, String> options, byte[] content, Connection conn) {
@@ -187,6 +196,8 @@ public class PicrossPuzzleController implements Controller {
         switch (action) {
             case "updateratings" -> response = updateRatings(content, conn, authInfo[0], authInfo[1]);
             case "updatesolution" -> response = updateSolution(content, conn, authInfo[0], authInfo[1]);
+            case "updatemessage" -> response = updateMessage(content, conn, authInfo[0], authInfo[1]);
+            case "updatetitle" -> response = updateTitle(content, conn, authInfo[0], authInfo[1]);
             default -> response.set400();
         }
         return response;
@@ -248,10 +259,10 @@ public class PicrossPuzzleController implements Controller {
             if (!rs.next()) {
                 throw new NotFoundException(String.format("No puzzle with the id %d was found", id));
             }
-            Type hashMapToken = new TypeToken<HashMap<Long, Integer>>() {}.getType();
+            Type listToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             return new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                    gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
-                    rs.getTimestamp("LastEdited").toInstant());
+                    gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), listToken),
+                    rs.getTimestamp("LastEdited").toInstant(), rs.getString("Message"), rs.getString("Title"));
         }
     }
 
@@ -259,11 +270,11 @@ public class PicrossPuzzleController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             List<PicrossPuzzle> puzzleList = new ArrayList<>();
             ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s WHERE CreatorId=%d", PicrossTable, id));
-            Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
+            Type listToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
-                        rs.getTimestamp("LastEdited").toInstant()));
+                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), listToken),
+                        rs.getTimestamp("LastEdited").toInstant(), rs.getString("Message"), rs.getString("Title")));
             }
             return puzzleList;
         }
@@ -273,11 +284,11 @@ public class PicrossPuzzleController implements Controller {
         try (Statement stmt = conn.createStatement()) {
             List<PicrossPuzzle> puzzleList = new ArrayList<>();
             ResultSet rs = stmt.executeQuery("SELECT * FROM " + PicrossTable);
-            Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
+            Type listToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
-                        rs.getTimestamp("LastEdited").toInstant()));
+                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), listToken),
+                        rs.getTimestamp("LastEdited").toInstant(), rs.getString("Message"), rs.getString("Title")));
             }
             return puzzleList;
         }
@@ -331,7 +342,7 @@ public class PicrossPuzzleController implements Controller {
 
     static class SolutionUpdater {
         long id;
-        int[][] solution;
+        int[] solution;
     }
     private HTTPResponse updateSolution(byte[] content, Connection conn, String username, String password) {
         HTTPResponse response = new HTTPResponse();
@@ -348,6 +359,68 @@ public class PicrossPuzzleController implements Controller {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(String.format("UPDATE %s SET Solution='%s', LastEdited=CURRENT_TIMESTAMP WHERE Id=%d",
                         PicrossTable, gson.toJson(solution.solution), solution.id));
+                response.set204();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+    }
+
+    static class TitleUpdater {
+        long id;
+        String title;
+    }
+    private HTTPResponse updateTitle(byte[] content, Connection conn, String username, String password) {
+        HTTPResponse response = new HTTPResponse();
+        try {
+            String json = new String(content, StandardCharsets.UTF_8);
+            TitleUpdater title = gson.fromJson(json, TitleUpdater.class);
+
+            PicrossPuzzle puzzle = getById(title.id, conn);
+            if (!AuthController.authById(puzzle.getCreatorId(), username, password, conn)) {
+                response.set403();
+                return response;
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(String.format("UPDATE %s SET Title='%s', WHERE Id=%d",
+                        PicrossTable, gson.toJson(title.title), title.id));
+                response.set204();
+                return response;
+            }
+        } catch (SQLException | NoSuchAlgorithmException e) {
+            response.set500();
+            return response;
+        } catch (NotFoundException e) {
+            response.set404();
+            return response;
+        }
+    }
+
+    static class MessageUpdater {
+        long id;
+        String message;
+    }
+    private HTTPResponse updateMessage(byte[] content, Connection conn, String username, String password) {
+        HTTPResponse response = new HTTPResponse();
+        try {
+            String json = new String(content, StandardCharsets.UTF_8);
+            MessageUpdater message = gson.fromJson(json, MessageUpdater.class);
+
+            PicrossPuzzle puzzle = getById(message.id, conn);
+            if (!AuthController.authById(puzzle.getCreatorId(), username, password, conn)) {
+                response.set403();
+                return response;
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(String.format("UPDATE %s SET Message='%s', WHERE Id=%d",
+                        PicrossTable, gson.toJson(message.message), message.id));
                 response.set204();
                 return response;
             }
