@@ -54,7 +54,7 @@ public class HTTPRequest {
             body = new byte[]{};
             return;
         }
-        String bod = String.join("\n", request.subList(i, j+1));
+        String bod = String.join("\n", i < j+1 ? request.subList(i, j+1) : request.subList(1, 1));
         body = bod.getBytes(StandardCharsets.UTF_8);
     }
 

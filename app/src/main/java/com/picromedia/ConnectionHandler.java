@@ -2,6 +2,7 @@ package com.picromedia;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,14 +33,14 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            InputStream ins = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
 
-            List<String> input = new ArrayList<>();
+            StringBuilder sBuild = new StringBuilder();
             do {
-                input.add(in.readLine());
+                char character = (char)in.read();
+                sBuild.append(character);
             } while (in.ready());
-            HTTPRequest request = new HTTPRequest(input);
+            HTTPRequest request = new HTTPRequest(Arrays.stream(sBuild.toString().split("\r\n")).toList());
             System.out.println(">> Read request:");
             System.out.println(request);
 

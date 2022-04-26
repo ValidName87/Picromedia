@@ -250,7 +250,7 @@ public class PicrossPuzzleController implements Controller {
             }
             Type hashMapToken = new TypeToken<HashMap<Long, Integer>>() {}.getType();
             return new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                    gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                    gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
                     rs.getTimestamp("LastEdited").toInstant());
         }
     }
@@ -262,7 +262,7 @@ public class PicrossPuzzleController implements Controller {
             Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
                         rs.getTimestamp("LastEdited").toInstant()));
             }
             return puzzleList;
@@ -276,7 +276,7 @@ public class PicrossPuzzleController implements Controller {
             Type hashMapToken = new TypeToken<List<PicrossPuzzle.Rating>>() {}.getType();
             while (rs.next()) {
                 puzzleList.add(new PicrossPuzzle(rs.getLong("id"), rs.getLong("CreatorId"),
-                        gson.fromJson(rs.getString("Solution"), int[][].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
+                        gson.fromJson(rs.getString("Solution"), int[].class), gson.fromJson(rs.getString("Ratings"), hashMapToken),
                         rs.getTimestamp("LastEdited").toInstant()));
             }
             return puzzleList;

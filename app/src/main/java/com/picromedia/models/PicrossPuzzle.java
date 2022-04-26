@@ -7,20 +7,20 @@ import java.util.List;
 public class PicrossPuzzle {
     private long id;
     private long creatorId;
-    private int[][] solution;
+    private int[] solution;
     // Key = Id of whoever rated it
     // Value = Rating
     private final List<Rating> ratings;
 
     private Instant lastEdited;
 
-    public PicrossPuzzle(long creatorId, int[][] solution) {
+    public PicrossPuzzle(long creatorId, int[] solution) {
         this.creatorId = creatorId;
         this.solution = solution;
         ratings = new ArrayList<>();
     }
 
-    public PicrossPuzzle(long id, long creatorId, int[][] solution, List<Rating> ratings) {
+    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings) {
         this.id = id;
         this.creatorId = creatorId;
         this.solution = solution;
@@ -28,7 +28,7 @@ public class PicrossPuzzle {
         this.lastEdited = Instant.now();
     }
 
-    public PicrossPuzzle(long id, long creatorId, int[][] solution, List<Rating> ratings, Instant lastEdited) {
+    public PicrossPuzzle(long id, long creatorId, int[] solution, List<Rating> ratings, Instant lastEdited) {
         this.id = id;
         this.creatorId = creatorId;
         this.solution = solution;
@@ -56,11 +56,11 @@ public class PicrossPuzzle {
         ratings.add(rating);
     }
 
-    public int[][] getSolution() {
+    public int[] getSolution() {
         return solution;
     }
 
-    public void setSolution(int[][] solution) {
+    public void setSolution(int[] solution) {
         this.solution = solution;
     }
 
