@@ -1,0 +1,3 @@
+[submodule "app/src/main/website"]
+	path = app/src/main/website
+	url = https://github.com/Mch47/Hackathon.git

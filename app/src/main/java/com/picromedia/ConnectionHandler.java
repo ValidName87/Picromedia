@@ -1,15 +1,13 @@
 package com.picromedia;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.picromedia.parsing.HTTPRequest;
@@ -34,6 +32,7 @@ public class ConnectionHandler implements Runnable {
     public void run() {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            InputStream ins = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
 
             List<String> input = new ArrayList<>();
@@ -41,11 +40,13 @@ public class ConnectionHandler implements Runnable {
                 input.add(in.readLine());
             } while (in.ready());
             HTTPRequest request = new HTTPRequest(input);
+            System.out.println(">> Read request:");
+            System.out.println(request);
 
             HTTPResponse response = Router.getResponse(request, sqlConnection);
 
             System.out.println(request);
-            System.out.println(response.toStringBodyless() + new String(response.getBody(), StandardCharsets.UTF_8));
+            System.out.println(response.toStringBodyless());
 
             out.write(response.toStringBodyless().getBytes(StandardCharsets.UTF_8));
             out.write(response.getBody());

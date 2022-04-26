@@ -15,6 +15,7 @@ public class Router {
         if (!response.getHeaders().containsKey("Content-Length")) {
             response.putHeader("Content-Length", String.valueOf(response.getBody().length));
         }
+        response.putHeader("Access-Control-Allow-Origin", "*");
         return response;
     }
 
@@ -47,13 +48,13 @@ public class Router {
         HTTPResponse response = new HTTPResponse();
         String[] fileName = path.split("\\.");
         String contentType = fileName.length > 1 ? getContentType(fileName[fileName.length - 1]) : "text/html";
-        path = path.contentEquals("/") ? "src/main/website/index" : "src/main/website" + path;
+        path = path.contentEquals("/") ? "src/main/website/home" : "src/main/website" + path;
         if (fileName.length == 1) {
             path = path + ".html";
         }
         System.out.println(">> Going to read from path: " + path);
         if (contentType == null) {
-            response.setStatusCode("500 Internal Server Error");
+            response.set500();
             return response;
         }
         if (contentType.equals("UNKNOWN")) {
@@ -66,7 +67,6 @@ public class Router {
             response.putHeader("Content-Type", contentType);
             response.putHeader("Content-Length", String.valueOf(bytes.length));
         } catch (IOException e) {
-            e.printStackTrace();
             response.set404();
         } catch (SecurityException e) {
             response.set403();
@@ -78,7 +78,7 @@ public class Router {
         try (FileInputStream extStream = new FileInputStream("src/main/resources/MIME Types.csv")) {
             String extensions = new String(extStream.readAllBytes(), StandardCharsets.UTF_8);
             return Arrays.stream(extensions.split("\n"))
-                    .filter((String s) -> s.startsWith(extension)).findFirst()
+                    .filter((String s) -> s.startsWith(extension.toLowerCase())).findFirst()
                     .orElse(",UNKNOWN")
                     .split(",")[1];
         } catch (Exception e) {

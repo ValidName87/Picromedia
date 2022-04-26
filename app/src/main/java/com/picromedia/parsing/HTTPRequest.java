@@ -1,6 +1,7 @@
 package com.picromedia.parsing;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -15,8 +16,11 @@ public class HTTPRequest {
         try {
             String[] firstLine = request.get(0).split(" ");
             verb = firstLine[0].toUpperCase();
+            System.out.println(verb);
             path = firstLine[1];
+            System.out.println(path);
             version = firstLine[2];
+            System.out.println(version);
         } catch (IndexOutOfBoundsException | NullPointerException e) {
             verb = "";
             path = "";
@@ -34,12 +38,24 @@ public class HTTPRequest {
         int i = 2;
         while (!currentLine.isEmpty()) {
             String[] kv = currentLine.split(": ");
-            headers.put(kv[0], kv[1]);
+            try {
+                headers.put(kv[0], kv[1]);
+            } catch (ArrayIndexOutOfBoundsException ignored) {}
             currentLine = request.size() > i ? request.get(i) : "";
             i++;
         }
 
-        body = (request.size() > i + 1 ? request.get(i + 1) : "").getBytes(StandardCharsets.UTF_8);
+        int j = request.size() - 1;
+        try {
+            while (request.get(j) == null) {
+                j--;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            body = new byte[]{};
+            return;
+        }
+        String bod = String.join("\n", request.subList(i, j+1));
+        body = bod.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

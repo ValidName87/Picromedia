@@ -16,6 +16,7 @@ public class App {
         try (ServerSocket socket = new ServerSocket(4747)) {
             while (true) {
                 Socket clientSocket = socket.accept();
+                System.out.println(">> Made a new connection: " + clientSocket.getInetAddress().toString());
                 threadPool.execute(new ConnectionHandler(clientSocket));
             }
         }

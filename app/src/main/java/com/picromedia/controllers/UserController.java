@@ -102,6 +102,7 @@ public class UserController implements Controller {
             response.set500();
             return response;
         } catch (SQLException e) {
+            e.printStackTrace();
             if (e.getErrorCode() == 1062) {
                 response.setStatusCode("409 Conflict");
             } else {
